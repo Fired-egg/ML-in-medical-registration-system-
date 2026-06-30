@@ -2,8 +2,6 @@
 
 本项目面向激光散斑眼底视频帧序列，实现了从图像质量筛选、基准帧选择、深度特征配准、效果评价到可视化导出的完整流程。配准核心基于 SuperRetina 关键点检测与描述子模型，项目在此基础上增加了批量视频帧处理、PyQt5 图形界面、NCC/DSC 评价、棋盘格可视化和配准前后对比视频生成等功能。
 
-![illustration](./image/illustration.png)
-
 ## 主要功能
 
 - 图像质量过滤：剔除全黑、过曝、模糊等无效帧。
@@ -156,22 +154,3 @@ python evaluate_registration.py --mode baseline
 ```
 
 如果需要改为完全基于图像内容实时计算指标，可在 `evaluate_registration.py` 中替换当前 `generate_metrics(...)` 相关逻辑，项目内已保留 `ncc(...)`、`dsc(...)`、`mutual_info(...)` 等计算函数。
-
-## 为什么 GitHub 显示 Jupyter Notebook 占比较高
-
-GitHub 的语言统计主要按文件体积计算，而 `notebooks/` 下 3 个 `.ipynb` 文件合计约 5 MB，远大于 Python 源码体积。因此即使主要代码是 `.py`，GitHub 也可能显示 Jupyter Notebook 占比最高。
-
-本仓库已通过 `.gitattributes` 将 Notebook 标记为文档用途，使 GitHub 语言统计更接近实际代码构成。推送后 GitHub 可能需要一段时间刷新语言比例。
-
-## 参考
-
-本项目的深度特征配准部分基于 SuperRetina：
-
-```bibtex
-@inproceedings{liu2022SuperRetina,
-  title={Semi-Supervised Keypoint Detector and Descriptor for Retinal Image Matching},
-  author={Jiazhen Liu and Xirong Li and Qijie Wei and Jie Xu and Dayong Ding},
-  booktitle={Proceedings of the 17th European Conference on Computer Vision (ECCV)},
-  year={2022}
-}
-```
