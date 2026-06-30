@@ -1,0 +1,19 @@
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Runtime outputs
+results/
+*.mp4
+
+# Local editor/OS files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
