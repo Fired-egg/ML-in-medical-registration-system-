@@ -1,145 +1,151 @@
-# 激光散斑眼底视频帧配准：结果与分析
+# Laser Speckle Fundus Video Frame Registration: Results and Analysis
 
-## 一、实验设置
+## 1. Experimental Setup
 
-### 1.1 数据集说明
+### 1.1 Dataset Description
 
-本文所使用的数据集来自**激光散斑眼底成像系统**采集的临床视频数据，包含以下特性：
+The dataset used in this study comes from clinical video data collected by a **laser speckle fundus imaging system**. It has the following characteristics:
 
-| 参数 | 数值 |
+| Parameter | Value |
 |------|------|
-| 总视频帧数 | 251帧 |
-| 图像格式 | 灰度图像（绿色通道） |
-| 图像分辨率 | 根据原始采集设备而定 |
-| 帧率 | 根据原始采集设备而定 |
-| 采集设备 | 激光散斑眼底成像仪 |
+| Total video frames | 251 frames |
+| Image format | Grayscale image (green channel) |
+| Image resolution | Determined by the original acquisition device |
+| Frame rate | Determined by the original acquisition device |
+| Acquisition device | Laser speckle fundus imager |
 
-数据采集过程中，由于眼球微动、患者眨眼等原因，导致视频帧间存在运动伪影，需要通过配准算法进行矫正。
+During data acquisition, involuntary eye movement and patient blinking introduce motion artifacts between video frames. A registration algorithm is therefore required to correct inter-frame motion.
 
-### 1.2 实验环境
+### 1.2 Experimental Environment
 
-| 配置项 | 配置内容 |
+| Configuration Item | Configuration |
 |--------|----------|
-| 操作系统 | Windows |
-| 深度学习框架 | PyTorch |
-| GPU | CUDA支持的NVIDIA显卡 |
-| 编程语言 | Python 3.x |
-| 主要依赖库 | OpenCV, NumPy, PyTorch |
+| Operating system | Windows |
+| Deep learning framework | PyTorch |
+| GPU | CUDA-enabled NVIDIA GPU |
+| Programming language | Python 3.x |
+| Main dependencies | OpenCV, NumPy, PyTorch |
 
-### 1.3 评价指标
+### 1.3 Evaluation Metrics
 
-本文采用以下定量评价指标来评估配准效果：
+This study uses the following quantitative metrics to evaluate registration performance.
 
-#### 1.3.1 归一化互相关 (NCC)
+#### 1.3.1 Normalized Cross-Correlation (NCC)
 
-归一化互相关用于衡量两幅图像的相似程度，定义为：
+Normalized cross-correlation measures the similarity between two images and is defined as:
 
 $$
 \text{NCC}(I_1, I_2) = \frac{\sum_{i,j} (I_1(i,j) - \mu_1)(I_2(i,j) - \mu_2)}{\sqrt{\sum_{i,j} (I_1(i,j) - \mu_1)^2 \sum_{i,j} (I_2(i,j) - \mu_2)^2}}
 $$
 
-其中 $\mu_1$ 和 $\mu_2$ 分别是两幅图像的像素均值。NCC值范围为[-1, 1]，值越接近1表示相似度越高。
+where $\mu_1$ and $\mu_2$ are the mean pixel values of the two images. The NCC range is [-1, 1], and values closer to 1 indicate higher similarity.
 
-#### 1.3.2 Dice相似系数 (DSC)
+#### 1.3.2 Dice Similarity Coefficient (DSC)
 
-为了从血管结构对齐的角度评价配准效果，我们首先使用阈值分割算法提取血管掩码，然后计算Dice相似系数：
+To evaluate registration from the perspective of vessel-structure alignment, vessel masks are first extracted using threshold segmentation, and the Dice similarity coefficient is then calculated:
 
 $$
 \text{DSC}(M_1, M_2) = \frac{2 |M_1 \cap M_2|}{|M_1| + |M_2|}
 $$
 
-其中 $M_1$ 和 $M_2$ 分别是基准帧和待配准帧的血管掩码。DSC值范围为[0, 1]，值越接近1表示血管结构对齐越好。
+where $M_1$ and $M_2$ are the vessel masks of the reference frame and the moving frame. The DSC range is [0, 1], and values closer to 1 indicate better vessel-structure alignment.
 
-血管掩码提取流程：
-1. 对图像进行CLAHE对比度增强（与predictor保持一致）
-2. 高斯模糊去噪
-3. 顶帽变换突出血管结构
-4. 阈值分割
-5. 形态学操作（闭运算连接血管、开运算去噪）
-6. 连通区域分析去除小区域
+Vessel-mask extraction workflow:
 
-### 1.4 基准帧选择
+1. Apply CLAHE contrast enhancement, consistent with the predictor preprocessing.
+2. Apply Gaussian blur for denoising.
+3. Use a top-hat transform to emphasize vessel structures.
+4. Perform threshold segmentation.
+5. Apply morphological operations, including closing to connect vessels and opening to remove noise.
+6. Remove small regions with connected-component analysis.
 
-在视频配准中，选择合适的基准帧至关重要。本文采用以下步骤选择基准帧：
+### 1.4 Reference-Frame Selection
 
-1. **图像质量过滤**：去除模糊、过曝/欠曝、全黑帧
-2. **质量评分**：综合清晰度、对比度、曝光度评分
-3. **基准帧选择**：选择质量分数最高的帧作为基准帧
+Choosing an appropriate reference frame is critical for video registration. This study selects the reference frame using the following steps:
 
-在本次实验中，编号为`100.png`的帧被选为基准帧。
+1. **Image-quality filtering**: removes blurred, overexposed/underexposed, and fully black frames.
+2. **Quality scoring**: combines sharpness, contrast, and exposure scores.
+3. **Reference-frame selection**: selects the frame with the highest quality score as the reference frame.
 
----
-
-## 二、定性结果
-
-### 2.1 棋盘格图可视化
-
-为了直观展示配准效果，我们采用棋盘格拼接的方式进行可视化。棋盘格图交替显示配准前/后的浮动帧和基准帧，便于观察对齐效果。
-
-棋盘格生成方法：
-- 将图像划分为 $128 \times 128$ 的方块
-- 奇数方块显示基准帧，偶数方块显示浮动帧
-- 分别生成配准前和配准后的棋盘格图
-
-**图1：配准前后棋盘格图对比示例**
-
-（此处应插入配准前和配准后的棋盘格对比图）
-
-从棋盘格图可以看出：
-1. **配准前**：血管结构存在明显错位，边界不连续
-2. **配准后**：血管结构对齐良好，边界连续完整
-
-特别是在视频的后半部分，眼球微动较为明显，配准效果提升最为显著。
-
-### 2.2 血管掩码可视化
-
-为了更清晰地展示血管结构的对齐情况，我们可视化了配准前后的血管掩码：
-
-**图2：血管掩码提取示例**
-
-（此处应插入血管掩码的可视化图）
-
-图中包含三种可视化结果：
-- **预处理图像**：经过CLAHE等预处理的图像
-- **血管掩码**：阈值分割得到的二值血管掩码
-- **叠加效果**：血管掩码叠加在预处理图像上
-
-**图3：配准前后血管掩码对比**
-
-（此处应插入同一帧配准前和配准后的血管掩码对比图）
-
-从血管掩码可视化可以看出：
-1. **配准前**：血管掩码之间差异较大
-2. **配准后**：血管掩码重叠度提高，验证了配准算法的有效性
+In this experiment, frame `100.png` was selected as the reference frame.
 
 ---
 
-## 三、定量结果
+## 2. Qualitative Results
 
-### 3.1 整体统计
+### 2.1 Chessboard Visualization
 
-表1展示了251帧视频的配准效果统计结果：
+To visually demonstrate registration performance, a chessboard mosaic is used for visualization. The chessboard image alternates between the moving frame and the reference frame before or after registration, making alignment quality easier to inspect.
 
-**表1：配准效果整体统计**
+Chessboard generation method:
 
-| 指标 | 配准前 | 配准后 | 变化量 | 改善情况 |
+- Divide each image into $128 \times 128$ blocks.
+- Show the reference frame in odd-numbered blocks and the moving frame in even-numbered blocks.
+- Generate separate chessboard images before and after registration.
+
+**Figure 1: Example chessboard comparison before and after registration**
+
+(Insert the before-registration and after-registration chessboard comparison images here.)
+
+The chessboard visualization shows that:
+
+1. **Before registration**: vessel structures are visibly misaligned and boundaries are discontinuous.
+2. **After registration**: vessel structures are well aligned, and boundaries are continuous and complete.
+
+The improvement is especially obvious in the later part of the video, where eye motion is more pronounced.
+
+### 2.2 Vessel-Mask Visualization
+
+To show vessel-structure alignment more clearly, vessel masks before and after registration are visualized.
+
+**Figure 2: Vessel-mask extraction example**
+
+(Insert the vessel-mask visualization image here.)
+
+The figure contains three visualization results:
+
+- **Preprocessed image**: image after CLAHE and related preprocessing.
+- **Vessel mask**: binary vessel mask obtained by threshold segmentation.
+- **Overlay**: vessel mask overlaid on the preprocessed image.
+
+**Figure 3: Vessel-mask comparison before and after registration**
+
+(Insert the vessel-mask comparison for the same frame before and after registration here.)
+
+The vessel-mask visualization shows that:
+
+1. **Before registration**: the vessel masks differ substantially.
+2. **After registration**: the mask overlap improves, supporting the effectiveness of the registration algorithm.
+
+---
+
+## 3. Quantitative Results
+
+### 3.1 Overall Statistics
+
+Table 1 summarizes registration performance across 251 video frames.
+
+**Table 1: Overall registration statistics**
+
+| Metric | Before Registration | After Registration | Change | Improvement |
 |------|--------|--------|--------|----------|
-| NCC（均值） | 0.9123 | 0.9382 | +0.0259 | 改善 ✅ |
-| NCC（最小值） | 0.7406 | 0.8219 | +0.0813 | - |
-| NCC（最大值） | 1.0000 | 1.0000 | 0.0000 | - |
-| DSC（均值） | 0.2417 | 0.1987 | -0.0430 | 变差 ⚠️ |
-| DSC（最小值） | 0.0000 | 0.0000 | 0.0000 | - |
-| DSC（最大值） | 0.8837 | 0.7927 | -0.0910 | - |
+| NCC (mean) | 0.9123 | 0.9382 | +0.0259 | Improved |
+| NCC (minimum) | 0.7406 | 0.8219 | +0.0813 | - |
+| NCC (maximum) | 1.0000 | 1.0000 | 0.0000 | - |
+| DSC (mean) | 0.2417 | 0.1987 | -0.0430 | Decreased |
+| DSC (minimum) | 0.0000 | 0.0000 | 0.0000 | - |
+| DSC (maximum) | 0.8837 | 0.7927 | -0.0910 | - |
 
-**关键发现**：
-1. **NCC指标**：配准后平均提高了2.6个百分点，从0.91提升到0.94，说明整体图像相似度显著提高
-2. **DSC指标**：配准后平均略有下降，从0.24下降到0.20，这是一个需要分析的现象
+**Key findings**:
 
-### 3.2 各帧详细结果
+1. **NCC metric**: the average NCC increased by 2.6 percentage points after registration, from 0.91 to 0.94, indicating a clear improvement in global image similarity.
+2. **DSC metric**: the average DSC decreased slightly from 0.24 to 0.20. This requires further analysis.
 
-**表2：各帧配准效果详细数据表（部分帧）**
+### 3.2 Detailed Per-Frame Results
 
-| 帧号 | NCC_前 | NCC_后 | ΔNCC | DSC_前 | DSC_后 | ΔDSC |
+**Table 2: Detailed registration results for selected frames**
+
+| Frame | NCC Before | NCC After | Delta NCC | DSC Before | DSC After | Delta DSC |
 |------|--------|--------|------|--------|--------|------|
 | 18.png | 0.8186 | 0.8973 | +0.0787 | 0.0000 | 0.0000 | 0.0000 |
 | 19.png | 0.8486 | 0.9087 | +0.0601 | 0.0000 | 0.0000 | 0.0000 |
@@ -153,205 +159,201 @@ $$
 | 27.png | 0.9595 | 0.9668 | +0.0073 | 0.2358 | 0.2527 | +0.0169 |
 | ... | ... | ... | ... | ... | ... | ... |
 
-（完整表格见附录）
+(See the appendix for the complete table.)
 
-### 3.3 统计分布
+### 3.3 Statistical Distributions
 
-**图4：NCC指标配准前后分布图**
+**Figure 4: NCC distribution before and after registration**
 
-（此处应插入NCC配准前后的直方图对比图）
+(Insert the before/after NCC histogram here.)
 
-**图5：DSC指标配准前后分布图**
+**Figure 5: DSC distribution before and after registration**
 
-（此处应插入DSC配准前后的直方图对比图）
-
----
-
-## 四、分析与讨论
-
-### 4.1 NCC指标改善分析
-
-NCC指标在配准后从0.91提升到0.94，表明配准算法有效提高了图像相似度。原因分析：
-
-1. **特征点匹配**：SuperRetina模型成功检测到视网膜血管的关键点
-2. **单应性估计**：使用RANSAC鲁棒估计方法，有效剔除了外点
-3. **几何变换**：通过单应性矩阵实现了准确的图像对齐
-
-特别是对于视频中的后半部分（如18.png-30.png），由于眼球微动明显，配准前NCC较低（0.81-0.93），配准后提升显著（0.90-0.97），验证了算法对显著运动的矫正能力。
-
-### 4.2 DSC指标下降的可能原因
-
-DSC指标配准后略有下降（从0.24降至0.20），这一现象值得深入分析：
-
-#### 4.2.1 可能原因分析
-
-1. **血管掩码提取的局限性**
-   - 当前使用固定阈值分割方法，对光照变化敏感
-   - 配准后图像可能存在灰度分布变化，导致掩码提取质量下降
-   - 建议：使用更鲁棒的血管分割算法（如深度学习方法）
-
-2. **配准引入的图像质量变化**
-   - 透视变换可能导致图像边缘区域质量下降
-   - 插值算法可能引入轻微模糊，影响血管边界
-   - 建议：使用更高阶的插值方法（如双三次插值）
-
-3. **DSC指标的局限性**
-   - DSC对掩码的细微变化敏感
-   - 当血管结构本身差异较大时，DSC难以反映真实配准效果
-   - 建议：结合其他指标（如关键点匹配率）综合评价
-
-4. **部分帧的特殊情况**
-   - 观察表2，26.png和27.png的DSC在配准后反而提高
-   - 说明在某些情况下配准确实改善了血管对齐
-   - 需要进一步分析DSC下降的帧与提高的帧之间的差异
-
-#### 4.2.2 深入分析建议
-
-为了深入理解这一现象，建议进行以下分析：
-
-1. **DSC变化的帧级分析**
-   - 统计DSC提高的帧数、下降的帧数、不变的帧数
-   - 分析这些帧在视频中的时序位置
-   - 观察这些帧的图像质量差异
-
-2. **与NCC的相关性分析**
-   - 绘制NCC变化与DSC变化的散点图
-   - 分析两者的相关性
-   - 找出NCC提高但DSC下降的帧的共同特征
-
-3. **配准质量的多层评价**
-   - 建议增加以下评价指标：
-     * 匹配点数量
-     * 内点率
-     * 单应性误差
-     * 视觉质量评分（主观评价）
-
-### 4.3 血管掩码方法的改进空间
-
-当前使用的血管掩码提取方法存在以下改进空间：
-
-1. **自动阈值优化**
-   - 可以使用Otsu自适应阈值
-   - 或者训练一个简单的深度学习模型进行分割
-
-2. **多尺度方法**
-   - 采用多个尺度的顶帽变换
-   - 融合不同尺度的结果
-
-3. **形态学参数调优**
-   - 调整形态学操作的核大小
-   - 迭代次数优化
-
-4. **利用配准信息**
-   - 可以考虑使用配准后的基准帧掩码作为参考
-   - 对配准后的浮动帧进行掩码对齐
-
-### 4.4 配准算法的优势
-
-尽管DSC存在下降现象，但SuperRetina配准算法仍具有以下优势：
-
-1. **端到端学习**
-   - 检测器和描述子联合优化
-   - 不需要单独的特征描述子设计
-
-2. **半监督学习**
-   - PKE（半监督关键点增强）技术
-   - 减少对标注数据的依赖
-
-3. **鲁棒性强**
-   - 对光照变化、部分遮挡有一定鲁棒性
-   - RANSAC有效处理外点
-
-4. **效率高**
-   - 单次推理时间短
-   - 适合实时应用
+(Insert the before/after DSC histogram here.)
 
 ---
 
-## 五、局限性分析
+## 4. Analysis and Discussion
 
-本研究存在以下局限性：
+### 4.1 Analysis of NCC Improvement
 
-### 5.1 数据集局限性
+NCC increased from 0.91 to 0.94 after registration, indicating that the algorithm effectively improved image similarity. The main reasons are:
 
-- **数据量**：仅使用了一个视频序列（251帧），缺少多中心数据验证
-- **多样性**：缺少不同疾病类型、不同严重程度的眼底图像
-- **真实性**：缺少真实的金标准配准结果（如眼底血管造影参考）
+1. **Feature-point matching**: the SuperRetina model successfully detects keypoints on retinal vessels.
+2. **Homography estimation**: the robust RANSAC estimation method effectively removes outliers.
+3. **Geometric transformation**: the homography matrix enables accurate image alignment.
 
-### 5.2 评价指标局限性
+For the later part of the video, such as frames `18.png` to `30.png`, eye motion is more pronounced. The pre-registration NCC is relatively low (0.81-0.93), while the post-registration NCC increases significantly (0.90-0.97), confirming that the algorithm can correct visible motion.
 
-- **NCC**：反映全局相似度，对局部血管对齐不敏感
-- **DSC**：依赖血管掩码质量，当前掩码方法可能不准确
-- **缺少其他指标**：没有计算匹配点数量、内点率等直接反映配准质量的指标
+### 4.2 Possible Reasons for DSC Decrease
 
-### 5.3 算法局限性
+The DSC metric decreased slightly after registration, from 0.24 to 0.20. This phenomenon deserves deeper analysis.
 
-- **依赖初始特征点**：当图像质量过差时，可能检测不到足够的特征点
-- **单应性假设**：假设场景是平面，对于深度变化明显的场景不够准确
-- **计算成本**：相比传统方法，深度学习方法计算成本更高
+#### 4.2.1 Possible Causes
+
+1. **Limitations of vessel-mask extraction**
+   - The current method uses fixed-threshold segmentation and is sensitive to illumination changes.
+   - Registered images may have changed grayscale distributions, reducing mask quality.
+   - Recommendation: use a more robust vessel segmentation method, such as a deep learning model.
+
+2. **Image-quality changes introduced by registration**
+   - Perspective transformation can reduce quality near image boundaries.
+   - Interpolation can introduce slight blur and affect vessel boundaries.
+   - Recommendation: use higher-order interpolation, such as bicubic interpolation.
+
+3. **Limitations of DSC**
+   - DSC is sensitive to small changes in masks.
+   - When vessel structures differ substantially, DSC may not accurately reflect real registration quality.
+   - Recommendation: combine it with other metrics, such as keypoint match rate.
+
+4. **Special cases in individual frames**
+   - Table 2 shows that DSC improves after registration for `26.png` and `27.png`.
+   - This indicates that registration does improve vessel alignment in some cases.
+   - Further analysis is needed to compare frames where DSC decreases with frames where DSC improves.
+
+#### 4.2.2 Suggestions for Deeper Analysis
+
+To better understand this phenomenon, the following analyses are recommended:
+
+1. **Frame-level DSC change analysis**
+   - Count frames with improved, decreased, and unchanged DSC.
+   - Analyze their temporal positions in the video.
+   - Inspect image-quality differences among these frames.
+
+2. **Correlation with NCC**
+   - Plot a scatter chart of NCC change versus DSC change.
+   - Analyze the correlation between the two metrics.
+   - Identify common characteristics of frames where NCC improves but DSC decreases.
+
+3. **Multi-level registration-quality evaluation**
+   - Add the following evaluation metrics:
+     - Number of matching points
+     - Inlier rate
+     - Homography error
+     - Visual-quality score based on subjective assessment
+
+### 4.3 Improvement Space for the Vessel-Mask Method
+
+The current vessel-mask extraction method can be improved in the following ways:
+
+1. **Automatic threshold optimization**
+   - Use Otsu adaptive thresholding.
+   - Alternatively, train a lightweight deep learning model for segmentation.
+
+2. **Multi-scale methods**
+   - Use top-hat transforms at multiple scales.
+   - Fuse results from different scales.
+
+3. **Morphological parameter tuning**
+   - Adjust kernel sizes for morphological operations.
+   - Optimize the number of iterations.
+
+4. **Use of registration information**
+   - Use the registered reference-frame mask as a guide.
+   - Align masks for registered moving frames.
+
+### 4.4 Advantages of the Registration Algorithm
+
+Although DSC decreases in this experiment, the SuperRetina registration algorithm still has the following advantages:
+
+1. **End-to-end learning**
+   - The detector and descriptor are jointly optimized.
+   - No separate hand-designed feature descriptor is required.
+
+2. **Semi-supervised learning**
+   - PKE, or semi-supervised keypoint enhancement, reduces reliance on labeled data.
+
+3. **Strong robustness**
+   - The model is reasonably robust to illumination variation and partial occlusion.
+   - RANSAC effectively handles outliers.
+
+4. **High efficiency**
+   - Single-pass inference is fast.
+   - The method is suitable for real-time applications.
 
 ---
 
-## 六、未来工作
+## 5. Limitations
 
-基于本研究的结果，未来可以从以下方向继续改进：
+### 5.1 Dataset Limitations
 
-### 6.1 更鲁棒的血管分割
+- **Data volume**: only one video sequence with 251 frames was used, lacking multi-center validation.
+- **Diversity**: the dataset lacks fundus images from different disease types and severity levels.
+- **Ground truth**: there is no real gold-standard registration result, such as a fundus angiography reference.
 
-- 使用深度学习方法（如U-Net）进行血管分割
-- 提高血管掩码质量，为DSC评价提供更可靠的基础
+### 5.2 Evaluation-Metric Limitations
 
-### 6.2 多模态配准
+- **NCC**: reflects global similarity and is not sensitive to local vessel alignment.
+- **DSC**: depends on vessel-mask quality, and the current mask method may be inaccurate.
+- **Missing metrics**: matching-point count and inlier rate were not included, although they directly reflect registration quality.
 
-- 将眼底图像与OCT、血管造影等多模态数据配准
-- 提供更全面的配准效果验证
+### 5.3 Algorithm Limitations
 
-### 6.3 实时优化
-
-- 优化算法推理速度
-- 开发更轻量的模型版本
-- 实现临床应用的实时配准
-
-### 6.4 评价体系完善
-
-- 建立更全面的评价指标体系
-- 结合主观评价与客观指标
-- 引入临床指标（如血流测量精度）
+- **Dependence on initial feature points**: when image quality is too poor, the model may not detect enough feature points.
+- **Homography assumption**: the method assumes a planar scene and is less accurate when depth variation is significant.
+- **Computational cost**: compared with traditional methods, deep learning methods are more computationally expensive.
 
 ---
 
-## 七、结论
+## 6. Future Work
 
-本研究实现了基于SuperRetina深度学习模型的激光散斑眼底视频帧配准方法，通过实验验证了以下结论：
+Based on the results of this study, future work can focus on the following directions.
 
-1. **算法有效性**：NCC指标从0.91提升到0.94，验证了配准算法的有效性
-2. **直观性验证**：棋盘格图清晰展示了配准前后的视觉改善
-3. **深入分析**：对DSC指标下降现象进行了分析，提出了可能的原因和改进方向
-4. **实用价值**：该算法具有良好的鲁棒性和效率，有潜力用于临床实际应用
+### 6.1 More Robust Vessel Segmentation
 
-虽然DSC指标配准后略有下降，但这不完全否定配准效果，可能与血管掩码提取方法有关。未来工作将重点改进血管分割方法，建立更全面的评价体系。
+- Use deep learning methods, such as U-Net, for vessel segmentation.
+- Improve vessel-mask quality to provide a more reliable basis for DSC evaluation.
+
+### 6.2 Multimodal Registration
+
+- Register fundus images with OCT, angiography, and other multimodal data.
+- Provide more comprehensive validation of registration performance.
+
+### 6.3 Real-Time Optimization
+
+- Optimize inference speed.
+- Develop a lighter model version.
+- Enable real-time registration for clinical applications.
+
+### 6.4 Improved Evaluation System
+
+- Build a more comprehensive evaluation metric system.
+- Combine subjective assessment with objective metrics.
+- Introduce clinical metrics, such as blood-flow measurement accuracy.
 
 ---
 
-## 附录
+## 7. Conclusion
 
-### A. 各帧详细数据表
+This study implements a laser speckle fundus video frame registration method based on the SuperRetina deep learning model. The experiments support the following conclusions:
 
-（此处应插入完整的251帧数据表格）
+1. **Algorithm effectiveness**: NCC increased from 0.91 to 0.94, validating the effectiveness of the registration algorithm.
+2. **Visual validation**: chessboard images clearly show visual improvement before and after registration.
+3. **In-depth analysis**: possible reasons for the DSC decrease are analyzed, and improvement directions are proposed.
+4. **Practical value**: the algorithm has good robustness and efficiency, with potential for clinical application.
 
-### B. 棋盘格图示例
-
-（此处应插入更多的棋盘格图示例）
-
-### C. 血管掩码可视化
-
-（此处应插入更多的血管掩码可视化示例）
+Although DSC decreases slightly after registration, this does not fully invalidate the registration effect. The decrease may be related to the vessel-mask extraction method. Future work should focus on improving vessel segmentation and building a more comprehensive evaluation system.
 
 ---
 
-**参考文献**（此处根据需要添加参考文献）
+## Appendix
 
-[1] SuperRetina论文引用
-[2] 相关配准方法的引用
-[3] 评价指标的引用
+### A. Detailed Per-Frame Data Table
 
+(Insert the complete 251-frame data table here.)
+
+### B. Chessboard Image Examples
+
+(Insert additional chessboard image examples here.)
+
+### C. Vessel-Mask Visualization
+
+(Insert additional vessel-mask visualization examples here.)
+
+---
+
+**References** (add references as needed)
+
+[1] SuperRetina paper citation
+[2] Citations for related registration methods
+[3] Citations for evaluation metrics

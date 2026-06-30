@@ -1,161 +1,162 @@
-# 激光散斑眼底视频帧图像配准算法代码文档
+# Code Documentation for the Laser Speckle Fundus Video Frame Registration Algorithm
 
-## 一、项目概述
+## 1. Project Overview
 
-本项目实现了基于深度学习的激光散斑眼底视频帧图像配准算法，主要包含以下核心模块：
+This project implements a deep-learning-based registration algorithm for laser speckle fundus video frames. It mainly contains the following core modules:
 
-| 模块 | 文件位置 | 功能描述 |
+| Module | File Location | Description |
 |------|----------|----------|
-| 预处理模块 | `pre/get_base.py` | 图像质量过滤、基准帧选择、对比度增强 |
-| 配准核心模块 | `predictor.py` | SuperRetina深度学习模型推理、特征匹配、单应性估计 |
-| 配准流程模块 | `register_from_base.py` | 批量帧配准、匹配信息保存 |
-| 评价模块 | `evaluate_registration.py` | NCC/DSC指标计算、血管掩码提取 |
-| 可视化模块 | `visualize_and_evaluate.py` | 血管掩码可视化、配准效果展示 |
-| GUI模块 | `app.py` / `gui_worker.py` | 图形界面操作、多线程任务管理 |
+| Preprocessing module | `pre/get_base.py` | Image-quality filtering, reference-frame selection, and contrast enhancement |
+| Registration core module | `predictor.py` | SuperRetina model inference, feature matching, and homography estimation |
+| Registration workflow module | `register_from_base.py` | Batch frame registration and matching-information export |
+| Evaluation module | `evaluate_registration.py` | NCC/DSC metric calculation and vessel-mask extraction |
+| Visualization module | `visualize_and_evaluate.py` | Vessel-mask visualization and registration-result display |
+| GUI module | `app.py` / `gui_worker.py` | Graphical interface operation and multi-threaded task management |
 
 ---
 
-## 二、整体架构与数据流程
+## 2. Overall Architecture and Data Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        数据处理流程                                 │
-├─────────────────────────────────────────────────────────────────────┤
-│                                                                     │
-│  原始图像 ──→ [预处理模块] ──→ filtered文件夹                       │
-│      │                              │                               │
-│      │                              ↓                               │
-│      │                    [配准核心模块]                            │
-│      │                              │                               │
-│      │                              ↓                               │
-│      │                    registered_filtered文件夹                 │
-│      │                              │                               │
-│      │                              ↓                               │
-│      │                    [predictor预处理]                          │
-│      │                              │                               │
-│      │                              ↓                               │
-│      │                    filtered_predictor_preprocessed文件夹      │
-│      │                              │                               │
-│      │                              ↓                               │
-│      └──────────→ [评价模块] ←─────────┘                            │
-│                              │                                      │
-│                              ↓                                      │
-│                    vessel_mask_visualization文件夹                   │
-│                              │                                      │
-│                              ↓                                      │
-│                    registration_eval.csv / registration_stats.txt   │
-│                                                                     │
-└─────────────────────────────────────────────────────────────────────┘
+```text
++---------------------------------------------------------------------+
+|                         Data Processing Flow                        |
++---------------------------------------------------------------------+
+|                                                                     |
+|  Raw images --> [Preprocessing module] --> filtered folder          |
+|      |                              |                               |
+|      |                              v                               |
+|      |                    [Registration core module]                 |
+|      |                              |                               |
+|      |                              v                               |
+|      |                    registered_filtered folder                 |
+|      |                              |                               |
+|      |                              v                               |
+|      |                    [Predictor preprocessing]                  |
+|      |                              |                               |
+|      |                              v                               |
+|      |                    filtered_predictor_preprocessed folder     |
+|      |                              |                               |
+|      |                              v                               |
+|      +------------> [Evaluation module] <------------+              |
+|                              |                                      |
+|                              v                                      |
+|                    vessel_mask_visualization folder                  |
+|                              |                                      |
+|                              v                                      |
+|                    registration_eval.csv / registration_stats.txt   |
+|                                                                     |
++---------------------------------------------------------------------+
 ```
 
 ---
 
-## 三、核心模块详细说明
+## 3. Core Module Details
 
-### 3.1 预处理模块 (`pre/get_base.py`)
+### 3.1 Preprocessing Module (`pre/get_base.py`)
 
-**功能定位**：对原始视频帧进行质量过滤和基准帧选择
+**Purpose**: performs quality filtering and reference-frame selection for raw video frames.
 
-**处理流程**：
+**Processing workflow**:
 
 ```python
-# 1. 图像质量评估
-- 模糊检测：使用拉普拉斯方差计算
-- 过曝/欠曝检测：基于直方图统计
-- 全黑帧检测：像素值统计
+# 1. Image-quality assessment
+- Blur detection: calculated with Laplacian variance
+- Overexposure/underexposure detection: based on histogram statistics
+- Fully black frame detection: based on pixel-value statistics
 
-# 2. 质量评分与排序
-- 综合评分 = 清晰度分数 + 对比度分数 + 曝光分数
+# 2. Quality scoring and sorting
+- Overall score = sharpness score + contrast score + exposure score
 
-# 3. 基准帧选择
-- 选择质量最高的帧作为基准帧
-- 保存基准帧信息到 frame_info.json
+# 3. Reference-frame selection
+- Select the frame with the highest quality score as the reference frame
+- Save reference-frame information to frame_info.json
 
-# 4. 图像预处理
-- 对比度增强（CLAHE）
-- 高斯模糊去噪（可选）
+# 4. Image preprocessing
+- Contrast enhancement (CLAHE)
+- Gaussian denoising (optional)
 ```
 
-**关键输出文件**：
-- `results/filtered/` - 过滤后的有效帧
-- `results/frame_info.json` - 基准帧信息
+**Key output files**:
+
+- `results/filtered/` - valid frames after filtering
+- `results/frame_info.json` - reference-frame information
 
 ---
 
-### 3.2 配准核心模块 (`predictor.py`)
+### 3.2 Registration Core Module (`predictor.py`)
 
-**功能定位**：使用SuperRetina深度学习模型进行特征提取和图像配准
+**Purpose**: uses the SuperRetina deep learning model for feature extraction and image registration.
 
-**核心类：Predictor**
+**Core class: `Predictor`**
 
-#### 3.2.1 初始化流程
+#### 3.2.1 Initialization Workflow
 
 ```python
 def __init__(self, config):
-    # 1. 加载配置参数
-    - device: 计算设备（GPU/CPU）
-    - model_save_path: 预训练模型路径
-    - nms_size/nms_thresh: NMS参数
-    - knn_thresh: KNN匹配阈值
-    
-    # 2. 加载预训练模型
-    - 初始化SuperRetina模型
-    - 加载训练好的权重
-    - 设置为评估模式
-    
-    # 3. 初始化匹配器
-    - BFMatcher (L2距离)
+    # 1. Load configuration parameters
+    - device: compute device (GPU/CPU)
+    - model_save_path: pretrained model path
+    - nms_size/nms_thresh: NMS parameters
+    - knn_thresh: KNN matching threshold
+
+    # 2. Load the pretrained model
+    - Initialize the SuperRetina model
+    - Load trained weights
+    - Set the model to evaluation mode
+
+    # 3. Initialize matcher
+    - BFMatcher (L2 distance)
 ```
 
-#### 3.2.2 图像预处理 (`image_read`)
+#### 3.2.2 Image Preprocessing (`image_read`)
 
 ```python
 def image_read(self, query_path, refer_path):
-    # 1. 读取彩色图像，提取绿色通道
+    # 1. Read color images and extract the green channel
     query_image = query_image[:, :, 1]
     refer_image = refer_image[:, :, 1]
     
-    # 2. 应用标准化预处理（common_util.pre_processing）
-    #    - 直方图均衡化
-    #    - Gamma校正
-    #    - 对比度归一化
+    # 2. Apply standardized preprocessing (common_util.pre_processing)
+    #    - Histogram equalization
+    #    - Gamma correction
+    #    - Contrast normalization
     
-    # 3. 转换为 uint8 格式
+    # 3. Convert to uint8 format
 ```
 
-#### 3.2.3 特征提取 (`model_run_pair`)
+#### 3.2.3 Feature Extraction (`model_run_pair`)
 
 ```python
 def model_run_pair(self, query_tensor, refer_tensor):
-    # 1. 模型推理
+    # 1. Model inference
     detector_pred, descriptor_pred = self.model(inputs)
     
-    # 2. NMS非极大值抑制
+    # 2. NMS non-maximum suppression
     scores = simple_nms(detector_pred, self.nms_size)
     
-    # 3. 关键点提取
+    # 3. Keypoint extraction
     keypoints = torch.nonzero(scores > threshold)
     
-    # 4. 边界去除
+    # 4. Border removal
     keypoints = remove_borders(keypoints, 4, h, w)
     
-    # 5. 描述子采样
+    # 5. Descriptor sampling
     descriptors = sample_keypoint_desc(keypoints, descriptors, 8)
     
     return keypoints, descriptors
 ```
 
-#### 3.2.4 特征匹配 (`match`)
+#### 3.2.4 Feature Matching (`match`)
 
 ```python
 def match(self, query_path, refer_path):
-    # 1. 图像读取与预处理
+    # 1. Read and preprocess images
     query_image, refer_image = self.image_read(query_path, refer_path)
     
-    # 2. 特征提取
+    # 2. Extract features
     keypoints, descriptors = self.model_run_pair(query_tensor, refer_tensor)
     
-    # 3. KNN匹配（k=2）
+    # 3. KNN matching (k=2)
     matches = self.knn_matcher.knnMatch(query_desc, refer_desc, k=2)
     
     # 4. Lowe's ratio test
@@ -166,38 +167,38 @@ def match(self, query_path, refer_path):
     return goodMatch, keypoints, images
 ```
 
-#### 3.2.5 单应性矩阵估计 (`compute_homography`)
+#### 3.2.5 Homography Matrix Estimation (`compute_homography`)
 
 ```python
 def compute_homography(self, query_path, refer_path):
-    # 1. 获取匹配点
+    # 1. Get matching points
     goodMatch, cv_kpts_query, cv_kpts_refer = self.match(...)
     
-    # 2. 准备匹配点坐标
+    # 2. Prepare matching-point coordinates
     src_pts = [cv_kpts_query[m.queryIdx].pt for m in goodMatch]
     dst_pts = [cv_kpts_refer[m.trainIdx].pt for m in goodMatch]
     
-    # 3. 使用LMEDS算法估计单应性矩阵
+    # 3. Estimate the homography matrix using the LMEDS algorithm
     H_m, mask = cv2.findHomography(src_pts, dst_pts, cv2.LMEDS)
     
-    # 4. 计算内点率
+    # 4. Calculate the inlier rate
     inliers_num_rate = num_inliers / len(mask.ravel())
     
     return H_m, inliers_num_rate, match_info
 ```
 
-#### 3.2.6 图像配准 (`align_image_pair`)
+#### 3.2.6 Image Registration (`align_image_pair`)
 
 ```python
 def align_image_pair(self, query_path, refer_path):
-    # 1. 计算单应性矩阵
+    # 1. Compute the homography matrix
     H_m, inliers_num_rate, ... = self.compute_homography(...)
     
-    # 2. 透视变换
+    # 2. Perspective transformation
     if H_m is not None and inliers_num_rate >= 0.1:
         query_align = cv2.warpPerspective(raw_query_image, H_m, (w, h))
     
-    # 3. 构建匹配信息字典
+    # 3. Build the matching-information dictionary
     match_info = {
         "num_matches": num_matches,
         "num_inliers": num_inliers,
@@ -210,82 +211,83 @@ def align_image_pair(self, query_path, refer_path):
 
 ---
 
-### 3.3 配准流程模块 (`register_from_base.py`)
+### 3.3 Registration Workflow Module (`register_from_base.py`)
 
-**功能定位**：批量处理视频帧，将所有浮动帧配准到基准帧
+**Purpose**: batch-processes video frames and registers all moving frames to the reference frame.
 
-**处理流程**：
+**Processing workflow**:
 
 ```python
 def register_from_base(results_dir, source_folder="filtered"):
-    # 1. 初始化Predictor
+    # 1. Initialize Predictor
     config = yaml.safe_load(open(config_path))
     predictor = Predictor(config)
     
-    # 2. 读取基准帧信息
+    # 2. Read reference-frame information
     with open("frame_info.json") as f:
         info = json.load(f)
         reference_frame = info["reference_frame"]
         valid_files = info["valid_files"]
     
-    # 3. 基准帧自配准
+    # 3. Self-register the reference frame
     ref_result = predictor.align_image_pair(refer_path, refer_path)
     
-    # 4. 遍历所有浮动帧进行配准
+    # 4. Iterate through all moving frames and register them
     for fname in valid_files:
         query_path = os.path.join(frames_dir, fname)
         result = predictor.align_image_pair(query_path, refer_path)
         
-        # 保存配准结果
+        # Save registration result
         cv2.imwrite(os.path.join(out_dir, fname), aligned_bgr)
         
-        # 收集匹配信息
+        # Collect matching information
         all_match_info[fname] = match_info
     
-    # 5. 保存匹配信息到JSON
+    # 5. Save matching information to JSON
     with open("match_info.json", "w") as f:
         json.dump(all_match_info, f)
 ```
 
-**关键输出**：
-- `results/registered_filtered/` - 配准后的图像
-- `results/match_info_filtered/match_info.json` - 匹配点信息
+**Key outputs**:
+
+- `results/registered_filtered/` - registered images
+- `results/match_info_filtered/match_info.json` - matching-point information
 
 ---
 
-### 3.4 评价模块 (`evaluate_registration.py`)
+### 3.4 Evaluation Module (`evaluate_registration.py`)
 
-**功能定位**：计算配准效果评价指标
+**Purpose**: calculates evaluation metrics for registration quality.
 
-**核心指标**：
+**Core metrics**:
 
-| 指标 | 计算方式 | 意义 |
+| Metric | Calculation | Meaning |
 |------|----------|------|
-| NCC | 归一化互相关 | 衡量图像相似度 [-1, 1] |
-| DSC | Dice相似系数 | 衡量血管掩码重叠度 [0, 1] |
+| NCC | Normalized cross-correlation | Measures image similarity [-1, 1] |
+| DSC | Dice similarity coefficient | Measures vessel-mask overlap [0, 1] |
 
-**血管掩码提取流程**：
+**Vessel-mask extraction workflow**:
 
 ```python
 def extract_vessel_mask(gray, threshold=50):
-    # 1. 预处理（与predictor相同）
+    # 1. Preprocess using the same method as predictor
     preprocessed = pre_processing(gray)
     
-    # 2. 高斯模糊
+    # 2. Gaussian blur
     blurred = cv2.GaussianBlur(preprocessed, (5, 5), 0)
     
-    # 3. 顶帽变换（突出血管结构）
+    # 3. Top-hat transform to emphasize vessel structures
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
     tophat = cv2.morphologyEx(blurred, cv2.MORPH_TOPHAT, kernel)
     
-    # 4. 阈值分割
+    # 4. Threshold segmentation
     _, binary = cv2.threshold(tophat, threshold, 255, cv2.THRESH_BINARY)
     
-    # 5. 形态学操作
+    # 5. Morphological operations
     closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
     opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel)
     
-    # 6. 连通区域分析（去除小区域）
+    # 6. Connected-component analysis to remove small regions
     num_labels, labels, stats = cv2.connectedComponentsWithStats(opened)
     for i in range(1, num_labels):
         if stats[i, cv2.CC_STAT_AREA] < min_area:
@@ -294,217 +296,221 @@ def extract_vessel_mask(gray, threshold=50):
     return opened > 0
 ```
 
-**评价流程**：
+**Evaluation workflow**:
 
 ```python
 def evaluate(results_dir, threshold=50):
-    # 1. 读取基准帧和浮动帧
+    # 1. Read the reference frame and moving frames
     ref_pre = cv2.imread(ref_pre_path, cv2.IMREAD_GRAYSCALE)
     
-    # 2. 遍历所有浮动帧
+    # 2. Iterate through all moving frames
     for fname in valid_files:
-        pre_img = cv2.imread(pre_path)  # 配准前
-        post_img = cv2.imread(post_path)  # 配准后
+        pre_img = cv2.imread(pre_path)  # before registration
+        post_img = cv2.imread(post_path)  # after registration
         
-        # 3. 计算NCC
+        # 3. Calculate NCC
         ncc_before = ncc(pre_img, ref_pre)
         ncc_after = ncc(post_img, ref_post)
         
-        # 4. 提取血管掩码并计算DSC
+        # 4. Extract vessel masks and calculate DSC
         vessel_mask_pre = extract_vessel_mask(pre_img, threshold)
         vessel_mask_post = extract_vessel_mask(post_img, threshold)
         
         dsc_before = dsc(vessel_mask_pre, vessel_mask_ref)
         dsc_after = dsc(vessel_mask_post, vessel_mask_ref)
         
-        # 5. 保存血管掩码可视化
+        # 5. Save vessel-mask visualizations
         cv2.imwrite(f"{fname}_pre_mask.png", vessel_mask_pre * 255)
         cv2.imwrite(f"{fname}_post_mask.png", vessel_mask_post * 255)
     
-    # 6. 计算统计信息（均值、上下限）
+    # 6. Calculate statistics (mean, lower bound, upper bound)
     stats = {
         "ncc_before_mean": np.mean(ncc_before_list),
         "ncc_after_mean": np.mean(ncc_after_list),
         ...
     }
     
-    # 7. 输出CSV和统计文件
+    # 7. Export CSV and statistics files
 ```
 
 ---
 
-### 3.5 可视化模块 (`visualize_and_evaluate.py`)
+### 3.5 Visualization Module (`visualize_and_evaluate.py`)
 
-**功能定位**：提供血管掩码的可视化展示
+**Purpose**: provides visual presentation of vessel masks.
 
-**生成文件**：
+**Generated files**:
 
-| 文件类型 | 命名格式 | 说明 |
+| File Type | Naming Format | Description |
 |----------|----------|------|
-| 原始图像 | `*_raw.png` | 未预处理的原始图像 |
-| 预处理图像 | `*_preprocessed.png` | 经过predictor预处理的图像 |
-| 血管掩码 | `*_mask.png` | 阈值分割得到的血管区域 |
-| 叠加效果 | `*_overlay.png` | 血管掩码叠加在预处理图像上 |
+| Raw image | `*_raw.png` | Original image without preprocessing |
+| Preprocessed image | `*_preprocessed.png` | Image after predictor preprocessing |
+| Vessel mask | `*_mask.png` | Vessel region produced by threshold segmentation |
+| Overlay | `*_overlay.png` | Vessel mask overlaid on the preprocessed image |
 
 ---
 
-## 四、配置文件说明
+## 4. Configuration File
 
 ### 4.1 `config/test.yaml`
 
 ```yaml
 PREDICT:
-  device: "cuda:0"              # 计算设备
-  model_save_path: "model.pth"  # 预训练模型路径
-  nms_size: 8                   # NMS窗口大小
-  nms_thresh: 0.05              # NMS阈值
-  knn_thresh: 0.7               # KNN匹配阈值
-  model_image_width: 640        # 模型输入宽度
-  model_image_height: 640       # 模型输入高度
+  device: "cuda:0"              # Compute device
+  model_save_path: "model.pth"  # Pretrained model path
+  nms_size: 8                   # NMS window size
+  nms_thresh: 0.05              # NMS threshold
+  knn_thresh: 0.7               # KNN matching threshold
+  model_image_width: 640        # Model input width
+  model_image_height: 640       # Model input height
 ```
 
 ---
 
-## 五、运行方式
+## 5. How to Run
 
-### 5.1 命令行方式
+### 5.1 Command Line
 
 ```bash
-# 1. 预处理（质量过滤和基准帧选择）
+# 1. Preprocessing: quality filtering and reference-frame selection
 python pre/01_get_base.py --input_dir /path/to/images --output_dir results
 
-# 2. 配准（批量帧配准到基准帧）
+# 2. Registration: register frames to the reference frame in batch
 python register_from_base.py
 
-# 3. predictor预处理（用于血管掩码生成）
+# 3. Predictor preprocessing for vessel-mask generation
 python preprocess_filtered.py
 
-# 4. 评价（计算指标并生成血管掩码）
+# 4. Evaluation: calculate metrics and generate vessel masks
 python evaluate_registration.py
 
-# 或者一步完成（推荐）
+# Or complete the post-processing workflow in one step (recommended)
 python run_all.py
 ```
 
-### 5.2 GUI方式
+### 5.2 GUI
 
 ```bash
 python app.py
 ```
 
-**GUI操作流程**：
-1. 选择图像目录
-2. 选择输出目录
-3. 点击"一键配准"按钮
-4. 等待配准完成后点击"评价配准结果"
+**GUI workflow**:
+
+1. Select the image directory.
+2. Select the output directory.
+3. Click the "One-click Registration" button.
+4. After registration completes, click "Evaluate Registration Results".
 
 ---
 
-## 六、关键技术要点
+## 6. Key Technical Points
 
-### 6.1 SuperRetina模型架构
+### 6.1 SuperRetina Model Architecture
 
+```text
++-----------------------------------------------------+
+|                  SuperRetina Model                  |
++-----------------------------------------------------+
+|                                                     |
+|  Input image --> [Shared encoder] --> Feature maps  |
+|                    |                                |
+|                    +----> [Detector head] --> Keypoint scores |
+|                    |                                |
+|                    +----> [Descriptor head] --> Feature descriptors |
+|                                                     |
++-----------------------------------------------------+
 ```
-┌─────────────────────────────────────────────────────┐
-│                  SuperRetina模型                    │
-├─────────────────────────────────────────────────────┤
-│                                                     │
-│  输入图像 ──→ [共享编码器] ──→ 特征图               │
-│                    │                                │
-│                    ├────→ [检测器头] ──→ 关键点得分  │
-│                    │                                │
-│                    └────→ [描述子头] ──→ 特征描述子  │
-│                                                     │
-└─────────────────────────────────────────────────────┘
-```
 
-### 6.2 单应性变换原理
+### 6.2 Homography Transformation Principle
 
-单应性矩阵是一个3x3矩阵，用于描述两个平面之间的透视变换：
+A homography matrix is a 3x3 matrix used to describe a perspective transformation between two planes:
 
-```
+```text
 [ x' ]   [ h11 h12 h13 ] [ x ]
 [ y' ] = [ h21 h22 h23 ] [ y ]
 [ w' ]   [ h31 h32 h33 ] [ 1 ]
 
-其中：x' = x/w', y' = y/w'
+where: x' = x/w', y' = y/w'
 ```
 
-### 6.3 内点率计算
+### 6.3 Inlier Rate Calculation
 
-内点率是符合几何模型（单应性矩阵）的匹配点占总匹配点的比例：
+The inlier rate is the ratio of matching points that conform to the geometric model, namely the homography matrix:
 
-```
-内点率 = 内点数量 / 总匹配点数量
+```text
+Inlier rate = Number of inliers / Total number of matching points
 
-误匹配率 = 1 - 内点率
+Mismatch rate = 1 - Inlier rate
 ```
 
 ---
 
-## 七、文件结构总结
+## 7. File Structure Summary
 
-```
+```text
 project_SuperRetina_main/
-├── common/                    # 通用工具函数
-│   ├── common_util.py         # 预处理、NMS、关键点采样
-│   ├── eval_util.py           # 评价指标计算
-│   └── train_util.py          # 训练相关工具
-├── config/                    # 配置文件
-│   └── test.yaml              # 推理配置
-├── model/                     # 深度学习模型
-│   ├── super_retina.py        # SuperRetina主模型
-│   ├── pke_module.py          # 关键点增强模块
-│   └── record_module.py       # 记录模块
-├── pre/                       # 预处理脚本
-│   ├── get_base.py            # 基准帧选择核心逻辑
-│   └── 01_get_base.py         # 预处理入口脚本
-├── predictor.py               # 模型推理核心类
-├── register_from_base.py      # 批量配准流程
-├── evaluate_registration.py   # 配准评价模块
-├── visualize_and_evaluate.py  # 可视化模块
-├── app.py                     # GUI主界面
-├── gui_worker.py              # GUI工作线程
-└── results/                   # 输出目录
-    ├── filtered/              # 过滤后的图像
-    ├── registered_filtered/   # 配准后的图像
-    ├── filtered_predictor_preprocessed/  # predictor预处理图像
-    ├── vessel_mask_visualization/        # 血管掩码可视化
-    ├── chessboard/            # 棋盘格对比图
-    └── registration_eval.csv  # 评价结果CSV
+├── common/                    # Shared utility functions
+│   ├── common_util.py         # Preprocessing, NMS, and keypoint sampling
+│   ├── eval_util.py           # Evaluation metric calculation
+│   └── train_util.py          # Training-related utilities
+├── config/                    # Configuration files
+│   └── test.yaml              # Inference configuration
+├── model/                     # Deep learning model
+│   ├── super_retina.py        # Main SuperRetina model
+│   ├── pke_module.py          # Keypoint enhancement module
+│   └── record_module.py       # Recording module
+├── pre/                       # Preprocessing scripts
+│   ├── get_base.py            # Core reference-frame selection logic
+│   └── 01_get_base.py         # Preprocessing entry script
+├── predictor.py               # Core model inference class
+├── register_from_base.py      # Batch registration workflow
+├── evaluate_registration.py   # Registration evaluation module
+├── visualize_and_evaluate.py  # Visualization module
+├── app.py                     # Main GUI interface
+├── gui_worker.py              # GUI worker thread
+└── results/                   # Output directory
+    ├── filtered/              # Filtered images
+    ├── registered_filtered/   # Registered images
+    ├── filtered_predictor_preprocessed/  # Predictor-preprocessed images
+    ├── vessel_mask_visualization/        # Vessel-mask visualizations
+    ├── chessboard/            # Chessboard comparison images
+    └── registration_eval.csv  # Evaluation results CSV
 ```
 
 ---
 
-## 八、扩展说明
+## 8. Extension Notes
 
-### 8.1 阈值调整
+### 8.1 Threshold Adjustment
 
-血管掩码提取的阈值参数可在以下位置调整：
+The vessel-mask extraction threshold can be adjusted in the following locations:
 
-1. `evaluate_registration.py` 的 `evaluate()` 函数参数
-2. `vessel_mask.py` 的 `extract_vessel_mask()` 函数参数
+1. The `evaluate()` function parameter in `evaluate_registration.py`
+2. The `extract_vessel_mask()` function parameter in `vessel_mask.py`
 
-**阈值范围建议**：
-- 较低阈值（30-50）：提取更多血管结构，但噪声较多
-- 较高阈值（70-90）：提取较少血管结构，但噪声较少
+**Recommended threshold ranges**:
 
-### 8.2 预处理选项
+- Lower thresholds (30-50): extract more vessel structures but include more noise.
+- Higher thresholds (70-90): extract fewer vessel structures but include less noise.
 
-在 `pre/get_base.py` 中可配置：
-- 是否启用光斑去除（`remove_specular` 参数）
-- CLAHE对比度增强参数
-- 图像质量过滤阈值
+### 8.2 Preprocessing Options
 
-### 8.3 配准参数
+The following options can be configured in `pre/get_base.py`:
 
-在 `config/test.yaml` 中可配置：
-- NMS阈值（`nms_thresh`）
-- KNN匹配阈值（`knn_thresh`）
-- 模型输入尺寸（`model_image_width/height`）
+- Whether to enable specular-highlight removal through the `remove_specular` parameter
+- CLAHE contrast-enhancement parameters
+- Image-quality filtering thresholds
+
+### 8.3 Registration Parameters
+
+The following options can be configured in `config/test.yaml`:
+
+- NMS threshold (`nms_thresh`)
+- KNN matching threshold (`knn_thresh`)
+- Model input size (`model_image_width/height`)
 
 ---
 
-**文档版本**: v1.0  
-**生成日期**: 2026年5月  
-**适用项目**: 激光散斑眼底视频帧图像配准算法研究
+**Document version**: v1.0
+**Generated date**: May 2026
+**Applicable project**: Research on laser speckle fundus video frame image registration algorithms

@@ -1,35 +1,35 @@
-# 结果分析补充文档
+# Supplementary Results Analysis Document
 
-## 一、生成图表的Python代码
+## 1. Python Code for Generating Figures
 
-### 1.1 NCC和DSC分布图
+### 1.1 NCC and DSC Distribution Plots
 
 ```python
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# 读取数据
+# Read data
 df = pd.read_csv('results/registration_eval.csv')
 
-# 创建图表
+# Create plots
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-# NCC分布
-axes[0].hist(df['ncc_before'], bins=20, alpha=0.5, label='配准前', density=True)
-axes[0].hist(df['ncc_after'], bins=20, alpha=0.5, label='配准后', density=True)
-axes[0].set_xlabel('NCC值')
-axes[0].set_ylabel('频率（归一化）')
-axes[0].set_title('NCC配准前后分布对比')
+# NCC distribution
+axes[0].hist(df['ncc_before'], bins=20, alpha=0.5, label='Before registration', density=True)
+axes[0].hist(df['ncc_after'], bins=20, alpha=0.5, label='After registration', density=True)
+axes[0].set_xlabel('NCC value')
+axes[0].set_ylabel('Frequency (normalized)')
+axes[0].set_title('NCC Distribution Before and After Registration')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-# DSC分布
-axes[1].hist(df['dsc_before'], bins=20, alpha=0.5, label='配准前', density=True)
-axes[1].hist(df['dsc_after'], bins=20, alpha=0.5, label='配准后', density=True)
-axes[1].set_xlabel('DSC值')
-axes[1].set_ylabel('频率（归一化）')
-axes[1].set_title('DSC配准前后分布对比')
+# DSC distribution
+axes[1].hist(df['dsc_before'], bins=20, alpha=0.5, label='Before registration', density=True)
+axes[1].hist(df['dsc_after'], bins=20, alpha=0.5, label='After registration', density=True)
+axes[1].set_xlabel('DSC value')
+axes[1].set_ylabel('Frequency (normalized)')
+axes[1].set_title('DSC Distribution Before and After Registration')
 axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
@@ -38,28 +38,28 @@ plt.savefig('results/ncc_dsc_distribution.png', dpi=300)
 plt.show()
 ```
 
-### 1.2 NCC变化与DSC变化散点图
+### 1.2 Scatter Plot of NCC Change and DSC Change
 
 ```python
-# 计算变化量
+# Calculate changes
 df['delta_ncc'] = df['ncc_after'] - df['ncc_before']
 df['delta_dsc'] = df['dsc_after'] - df['dsc_before']
 
-# 创建散点图
+# Create scatter plot
 plt.figure(figsize=(10, 6))
 plt.scatter(df['delta_ncc'], df['delta_dsc'], alpha=0.6)
-plt.xlabel('NCC变化量（配准后-配准前）')
-plt.ylabel('DSC变化量（配准后-配准前）')
-plt.title('NCC变化与DSC变化的关系')
+plt.xlabel('NCC change (after registration - before registration)')
+plt.ylabel('DSC change (after registration - before registration)')
+plt.title('Relationship Between NCC Change and DSC Change')
 
-# 添加参考线
+# Add reference lines
 plt.axhline(y=0, color='r', linestyle='--', alpha=0.5)
 plt.axvline(x=0, color='r', linestyle='--', alpha=0.5)
 
-# 添加统计信息
-plt.annotate(f'NCC平均变化: {df["delta_ncc"].mean():.4f}', 
+# Add statistics
+plt.annotate(f'Mean NCC change: {df["delta_ncc"].mean():.4f}',
              (0.05, 0.95), xycoords='axes fraction')
-plt.annotate(f'DSC平均变化: {df["delta_dsc"].mean():.4f}', 
+plt.annotate(f'Mean DSC change: {df["delta_dsc"].mean():.4f}',
              (0.05, 0.90), xycoords='axes fraction')
 
 plt.grid(True, alpha=0.3)
@@ -67,30 +67,30 @@ plt.savefig('results/ncc_dsc_scatter.png', dpi=300)
 plt.show()
 ```
 
-### 1.3 各帧配准效果时序图
+### 1.3 Temporal Plot of Per-Frame Registration Performance
 
 ```python
-# 从文件名中提取帧号
+# Extract frame numbers from filenames
 df['frame_number'] = df['frame'].str.extract(r'(\d+)').astype(int)
 df = df.sort_values('frame_number')
 
-# 创建时序图
+# Create temporal plots
 fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-# NCC时序
-axes[0].plot(df['frame_number'], df['ncc_before'], 'o-', alpha=0.6, label='配准前', markevery=10)
-axes[0].plot(df['frame_number'], df['ncc_after'], 's-', alpha=0.6, label='配准后', markevery=10)
-axes[0].set_ylabel('NCC值')
-axes[0].set_title('各帧NCC配准前后对比（按帧号排序）')
+# NCC over time
+axes[0].plot(df['frame_number'], df['ncc_before'], 'o-', alpha=0.6, label='Before registration', markevery=10)
+axes[0].plot(df['frame_number'], df['ncc_after'], 's-', alpha=0.6, label='After registration', markevery=10)
+axes[0].set_ylabel('NCC value')
+axes[0].set_title('Per-Frame NCC Before and After Registration (sorted by frame number)')
 axes[0].legend()
 axes[0].grid(True, alpha=0.3)
 
-# DSC时序
-axes[1].plot(df['frame_number'], df['dsc_before'], 'o-', alpha=0.6, label='配准前', markevery=10)
-axes[1].plot(df['frame_number'], df['dsc_after'], 's-', alpha=0.6, label='配准后', markevery=10)
-axes[1].set_xlabel('帧号')
-axes[1].set_ylabel('DSC值')
-axes[1].set_title('各帧DSC配准前后对比（按帧号排序）')
+# DSC over time
+axes[1].plot(df['frame_number'], df['dsc_before'], 'o-', alpha=0.6, label='Before registration', markevery=10)
+axes[1].plot(df['frame_number'], df['dsc_after'], 's-', alpha=0.6, label='After registration', markevery=10)
+axes[1].set_xlabel('Frame number')
+axes[1].set_ylabel('DSC value')
+axes[1].set_title('Per-Frame DSC Before and After Registration (sorted by frame number)')
 axes[1].legend()
 axes[1].grid(True, alpha=0.3)
 
@@ -99,44 +99,44 @@ plt.savefig('results/temporal_comparison.png', dpi=300)
 plt.show()
 ```
 
-### 1.4 统计分析
+### 1.4 Statistical Analysis
 
 ```python
-# 计算DSC改善、变差、不变的帧数
+# Count frames where DSC improved, worsened, or stayed unchanged
 improved = (df['delta_dsc'] > 0.01).sum()
 worsened = (df['delta_dsc'] < -0.01).sum()
 unchanged = ((df['delta_dsc'] >= -0.01) & (df['delta_dsc'] <= 0.01)).sum()
 
-print(f"DSC改善的帧数: {improved} ({improved/len(df)*100:.1f}%)")
-print(f"DSC变差的帧数: {worsened} ({worsened/len(df)*100:.1f}%)")
-print(f"DSC不变的帧数: {unchanged} ({unchanged/len(df)*100:.1f}%)")
+print(f"Frames with improved DSC: {improved} ({improved/len(df)*100:.1f}%)")
+print(f"Frames with worsened DSC: {worsened} ({worsened/len(df)*100:.1f}%)")
+print(f"Frames with unchanged DSC: {unchanged} ({unchanged/len(df)*100:.1f}%)")
 
-# 分组统计（按NCC改善程度）
+# Group statistics by NCC improvement level
 ncc_big_improve = df[df['delta_ncc'] > 0.05]
 ncc_small_improve = df[(df['delta_ncc'] >= 0) & (df['delta_ncc'] <= 0.05)]
 ncc_worsen = df[df['delta_ncc'] < 0]
 
-print(f"\nNCC大幅改善（>0.05）的帧:")
-print(f"  数量: {len(ncc_big_improve)}")
-print(f"  平均DSC变化: {ncc_big_improve['delta_dsc'].mean():.4f}")
+print(f"\nFrames with large NCC improvement (>0.05):")
+print(f"  Count: {len(ncc_big_improve)}")
+print(f"  Mean DSC change: {ncc_big_improve['delta_dsc'].mean():.4f}")
 
-print(f"\nNCC小幅改善（0-0.05）的帧:")
-print(f"  数量: {len(ncc_small_improve)}")
-print(f"  平均DSC变化: {ncc_small_improve['delta_dsc'].mean():.4f}")
+print(f"\nFrames with small NCC improvement (0-0.05):")
+print(f"  Count: {len(ncc_small_improve)}")
+print(f"  Mean DSC change: {ncc_small_improve['delta_dsc'].mean():.4f}")
 
-print(f"\nNCC变差（<0）的帧:")
-print(f"  数量: {len(ncc_worsen)}")
-print(f"  平均DSC变化: {ncc_worsen['delta_dsc'].mean():.4f}")
+print(f"\nFrames with worsened NCC (<0):")
+print(f"  Count: {len(ncc_worsen)}")
+print(f"  Mean DSC change: {ncc_worsen['delta_dsc'].mean():.4f}")
 
-# 绘制饼图
-labels = ['DSC改善 (>0.01)', 'DSC不变 (-0.01~0.01)', 'DSC变差 (<-0.01)']
+# Draw pie chart
+labels = ['DSC improved (>0.01)', 'DSC unchanged (-0.01 to 0.01)', 'DSC worsened (<-0.01)']
 sizes = [improved, unchanged, worsened]
 colors = ['#2ecc71', '#3498db', '#e74c3c']
 
 plt.figure(figsize=(8, 8))
 plt.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', 
         startangle=90, shadow=True)
-plt.title('DSC配准后变化分布')
+plt.title('Distribution of DSC Changes After Registration')
 plt.axis('equal')
 plt.savefig('results/dsc_change_pie.png', dpi=300)
 plt.show()
@@ -144,11 +144,11 @@ plt.show()
 
 ---
 
-## 二、进一步分析建议
+## 2. Suggestions for Further Analysis
 
-### 2.1 不同阈值下的DSC评估
+### 2.1 DSC Evaluation Under Different Thresholds
 
-当前使用了固定阈值进行血管掩码提取，建议测试不同阈值下的配准效果：
+The current method uses a fixed threshold for vessel-mask extraction. Testing registration performance under different thresholds is recommended:
 
 ```python
 import os
@@ -161,7 +161,7 @@ results_dir = 'results'
 registered_dir = os.path.join(results_dir, 'registered_filtered')
 filtered_dir = os.path.join(results_dir, 'filtered')
 
-# 读取基准帧
+# Read the reference frame
 with open(os.path.join(results_dir, 'frame_info.json'), 'r') as f:
     import json
     info = json.load(f)
@@ -170,40 +170,40 @@ with open(os.path.join(results_dir, 'frame_info.json'), 'r') as f:
 ref_img_path = os.path.join(filtered_dir, reference_frame)
 ref_img = cv2.imread(ref_img_path, cv2.IMREAD_GRAYSCALE)
 
-# 测试不同阈值
+# Test different thresholds
 thresholds = [30, 40, 50, 60, 70]
 results = []
 
 for threshold in thresholds:
-    # 提取基准帧掩码
+    # Extract the reference-frame mask
     ref_mask = extract_vessel_mask(ref_img, threshold=threshold)
     
     total_dsc_before = 0
     total_dsc_after = 0
     count = 0
     
-    # 读取评价数据
+    # Read evaluation data
     df = pd.read_csv(os.path.join(results_dir, 'registration_eval.csv'))
     
     for _, row in df.iterrows():
         frame = row['frame']
         
-        # 配准前图像
+        # Image before registration
         before_path = os.path.join(filtered_dir, frame)
         before_img = cv2.imread(before_path, cv2.IMREAD_GRAYSCALE)
         
-        # 配准后图像
+        # Image after registration
         after_path = os.path.join(registered_dir, frame)
         after_img = cv2.imread(after_path, cv2.IMREAD_GRAYSCALE)
         
         if before_img is None or after_img is None:
             continue
             
-        # 提取掩码
+        # Extract masks
         before_mask = extract_vessel_mask(before_img, threshold=threshold)
         after_mask = extract_vessel_mask(after_img, threshold=threshold)
         
-        # 计算DSC
+        # Calculate DSC
         def dsc(m1, m2):
             m1 = m1.astype(bool)
             m2 = m2.astype(bool)
@@ -230,126 +230,128 @@ for threshold in thresholds:
         'delta_dsc': avg_dsc_after - avg_dsc_before
     })
     
-    print(f"阈值={threshold}: 配准前DSC={avg_dsc_before:.4f}, 配准后DSC={avg_dsc_after:.4f}, 变化={avg_dsc_after-avg_dsc_before:.4f}")
+    print(f"Threshold={threshold}: DSC before registration={avg_dsc_before:.4f}, "
+          f"DSC after registration={avg_dsc_after:.4f}, "
+          f"change={avg_dsc_after-avg_dsc_before:.4f}")
 
-# 绘制结果
+# Plot results
 result_df = pd.DataFrame(results)
 plt.figure(figsize=(10, 6))
-plt.plot(result_df['threshold'], result_df['avg_dsc_before'], 'o-', label='配准前', linewidth=2)
-plt.plot(result_df['threshold'], result_df['avg_dsc_after'], 's-', label='配准后', linewidth=2)
-plt.xlabel('阈值')
-plt.ylabel('平均DSC')
-plt.title('不同阈值下DSC对比')
+plt.plot(result_df['threshold'], result_df['avg_dsc_before'], 'o-', label='Before registration', linewidth=2)
+plt.plot(result_df['threshold'], result_df['avg_dsc_after'], 's-', label='After registration', linewidth=2)
+plt.xlabel('Threshold')
+plt.ylabel('Mean DSC')
+plt.title('DSC Comparison Under Different Thresholds')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.savefig('results/threshold_sensitivity.png', dpi=300)
 plt.show()
 ```
 
-### 2.2 配准质量综合分析
+### 2.2 Comprehensive Registration-Quality Analysis
 
-建议从以下角度进行综合分析：
+A comprehensive analysis is recommended from the following perspectives:
 
-1. **配准前图像质量与配准效果的关系**
-   - 分析模糊度、亮度等图像质量指标与配准提升量的关系
-   - 是否质量差的帧配准提升更明显？
+1. **Relationship between pre-registration image quality and registration performance**
+   - Analyze the relationship between image-quality metrics, such as blur and brightness, and registration improvement.
+   - Determine whether lower-quality frames benefit more from registration.
 
-2. **帧间距离与配准效果**
-   - 距基准帧越近的帧配准效果是否更好？
-   - 配准效果随帧距变化的趋势如何？
+2. **Frame distance and registration performance**
+   - Check whether frames closer to the reference frame achieve better registration.
+   - Analyze the trend of registration performance as frame distance changes.
 
-3. **匹配点统计**
-   - 利用match_info中的数据，分析匹配点数量、内点率等
-   - 绘制匹配点数量与配准效果的关系图
+3. **Matching-point statistics**
+   - Use the data in `match_info` to analyze the number of matching points and the inlier rate.
+   - Plot the relationship between matching-point count and registration performance.
 
-### 2.3 错误案例分析
+### 2.3 Failure-Case Analysis
 
-建议选取几个典型的帧进行详细分析：
+Select representative frames for detailed analysis:
 
-1. **NCC大幅提升但DSC下降的帧**
-   - 展示原始图像、配准前掩码、配准后掩码
-   - 分析DSC下降的可能原因
+1. **Frames with large NCC improvement but DSC decrease**
+   - Show the original image, pre-registration mask, and post-registration mask.
+   - Analyze possible reasons for DSC decrease.
 
-2. **NCC和DSC都提升的帧**
-   - 作为成功案例，展示配准效果
+2. **Frames where both NCC and DSC improve**
+   - Use them as successful cases to demonstrate registration quality.
 
-3. **配准失败的帧**
-   - 分析失败原因，提出改进建议
-
----
-
-## 三、论文图表的制作建议
-
-### 3.1 棋盘格图的选择建议
-
-选择以下帧作为论文图表：
-
-1. **配准提升最明显的帧**
-   - 找ΔNCC最大的几帧
-   - 直观展示配准效果
-
-2. **不同时段的代表性帧**
-   - 视频开始、中间、结尾各选几帧
-   - 展示算法在整个视频中的稳定性
-
-3. **典型场景**
-   - 眼球微动明显的帧
-   - 有眨眼的帧（如果适用）
-
-### 3.2 血管掩码可视化建议
-
-建议展示以下组合：
-
-1. **预处理图像 + 血管掩码**
-   - 并排展示原始图像和掩码
-   - 验证掩码提取质量
-
-2. **配准前/配准后掩码对比**
-   - 使用热力图或不同颜色叠加
-   - 清晰展示重叠区域
-
-3. **基准帧掩码与配准后掩码**
-   - 直接对比以计算DSC的两个掩码
-   - 帮助理解DSC指标的含义
-
-### 3.3 统计图表建议
-
-论文中建议包含以下图表：
-
-1. **表1**：整体统计数据（已在指南中提供）
-2. **图1**：棋盘格图示例（配准前vs配准后）
-3. **图2**：NCC和DSC分布直方图（可用上面的代码生成）
-4. **图3**：时序变化图（展示视频全过程的配准效果）
-5. **图4**：NCC变化vsDSC变化散点图（分析两者关系）
+3. **Frames where registration fails**
+   - Analyze failure causes and propose improvements.
 
 ---
 
-## 四、与其他方法的对比（可选）
+## 3. Suggestions for Thesis Figures
 
-如果想在论文中对比其他方法，建议：
+### 3.1 Selecting Chessboard Figures
 
-### 4.1 可选的对比方法
+Select the following frames for thesis figures:
 
-1. **传统方法**
+1. **Frames with the largest registration improvement**
+   - Find several frames with the largest Delta NCC.
+   - Use them to visually demonstrate registration performance.
+
+2. **Representative frames from different time periods**
+   - Select frames from the beginning, middle, and end of the video.
+   - Demonstrate algorithm stability across the whole video.
+
+3. **Typical scenarios**
+   - Frames with obvious eye micro-motion.
+   - Frames with blinking, if applicable.
+
+### 3.2 Vessel-Mask Visualization Suggestions
+
+The following combinations are recommended:
+
+1. **Preprocessed image plus vessel mask**
+   - Display the original image and mask side by side.
+   - Validate vessel-mask extraction quality.
+
+2. **Mask comparison before and after registration**
+   - Use a heatmap or color overlay.
+   - Clearly show overlapping regions.
+
+3. **Reference-frame mask versus post-registration mask**
+   - Directly compare the two masks used for DSC calculation.
+   - Help readers understand what the DSC metric represents.
+
+### 3.3 Statistical Figure Suggestions
+
+The thesis should include the following tables and figures:
+
+1. **Table 1**: overall statistics, already provided in the main guide.
+2. **Figure 1**: chessboard example, before registration versus after registration.
+3. **Figure 2**: NCC and DSC distribution histograms, generated using the code above.
+4. **Figure 3**: temporal variation plot showing registration performance across the full video.
+5. **Figure 4**: scatter plot of NCC change versus DSC change, used to analyze their relationship.
+
+---
+
+## 4. Comparison With Other Methods (Optional)
+
+If comparison with other methods is needed in the thesis, the following options are recommended.
+
+### 4.1 Candidate Comparison Methods
+
+1. **Traditional methods**
    - SIFT + RANSAC
    - ORB + RANSAC
-   - 基于互信息的配准
+   - Mutual-information-based registration
 
-2. **深度学习方法**
-   - 其他专门的眼底图像配准方法
-   - 通用的图像配准网络
+2. **Deep learning methods**
+   - Other fundus-image-specific registration methods
+   - General-purpose image registration networks
 
-### 4.2 对比实验的运行
+### 4.2 Running Comparison Experiments
 
-可创建以下脚本进行对比：
+The following script can be created for comparison:
 
 ```python
-# 此为示意代码，需要根据实际方法实现
+# This is illustrative code and must be adapted to the actual method.
 import cv2
 import numpy as np
 
 def sift_register(img1, img2):
-    """使用SIFT进行配准"""
+    """Register images using SIFT."""
     sift = cv2.SIFT_create()
     kp1, des1 = sift.detectAndCompute(img1, None)
     kp2, des2 = sift.detectAndCompute(img2, None)
@@ -370,31 +372,31 @@ def sift_register(img1, img2):
         return H
     return None
 
-# 运行对比实验
+# Run comparison experiments
 # ...
 ```
 
 ---
 
-## 五、补充统计数据
+## 5. Supplementary Statistics
 
-基于现有数据，可以进一步计算以下统计量：
+Based on the existing data, the following additional statistics can be calculated:
 
 ```python
-# 计算相关系数
+# Calculate correlation coefficient
 correlation = df[['delta_ncc', 'delta_dsc']].corr()
-print(f"NCC变化与DSC变化的相关系数: {correlation.iloc[0, 1]:.4f}")
+print(f"Correlation coefficient between NCC change and DSC change: {correlation.iloc[0, 1]:.4f}")
 
-# 统计显著性检验（配对t检验）
+# Statistical significance test: paired t-test
 from scipy import stats
 
 t_stat, p_value = stats.ttest_rel(df['ncc_before'], df['ncc_after'])
-print(f"NCC配准前后配对t检验: t={t_stat:.4f}, p={p_value:.6f}")
+print(f"Paired t-test for NCC before and after registration: t={t_stat:.4f}, p={p_value:.6f}")
 
 t_stat, p_value = stats.ttest_rel(df['dsc_before'], df['dsc_after'])
-print(f"DSC配准前后配对t检验: t={t_stat:.4f}, p={p_value:.6f}")
+print(f"Paired t-test for DSC before and after registration: t={t_stat:.4f}, p={p_value:.6f}")
 
-# 计算置信区间
+# Calculate confidence intervals
 def confidence_interval(data, confidence=0.95):
     mean = np.mean(data)
     std_err = stats.sem(data)
@@ -404,30 +406,30 @@ def confidence_interval(data, confidence=0.95):
 ncc_mean, ncc_low, ncc_high = confidence_interval(df['delta_ncc'])
 dsc_mean, dsc_low, dsc_high = confidence_interval(df['delta_dsc'])
 
-print(f"\nNCC变化95%置信区间: {ncc_mean:.4f} [{ncc_low:.4f}, {ncc_high:.4f}]")
-print(f"DSC变化95%置信区间: {dsc_mean:.4f} [{dsc_low:.4f}, {dsc_high:.4f}]")
+print(f"\n95% confidence interval for NCC change: {ncc_mean:.4f} [{ncc_low:.4f}, {ncc_high:.4f}]")
+print(f"95% confidence interval for DSC change: {dsc_mean:.4f} [{dsc_low:.4f}, {dsc_high:.4f}]")
 ```
 
-将这些统计结果补充到论文的"结果"部分，可以增强分析的可靠性。
+Adding these statistics to the "Results" section of the thesis can strengthen the reliability of the analysis.
 
 ---
 
-## 六、创建完整的结果展示网页
+## 6. Creating a Complete Results Display Webpage
 
-为了更好地展示结果，可以创建一个HTML网页：
+To present the results more clearly, an HTML webpage can be generated:
 
 ```python
 import pandas as pd
 
-# 读取数据
+# Read data
 df = pd.read_csv('results/registration_eval.csv')
 
-# 创建HTML
+# Create HTML
 html_content = f"""
 <!DOCTYPE html>
 <html>
 <head>
-    <title>配准结果展示</title>
+    <title>Registration Results Display</title>
     <style>
         body {{ font-family: Arial, sans-serif; margin: 20px; }}
         h1 {{ color: #333; }}
@@ -440,27 +442,27 @@ html_content = f"""
     </style>
 </head>
 <body>
-    <h1>激光散斑眼底配准结果展示</h1>
+    <h1>Laser Speckle Fundus Registration Results</h1>
     
-    <h2>统计摘要</h2>
-    <p>总帧数: {len(df)}</p>
-    <p>NCC配准前平均: {df['ncc_before'].mean():.4f}, 配准后平均: {df['ncc_after'].mean():.4f}, 变化: {df['ncc_after'].mean() - df['ncc_before'].mean():.4f}</p>
-    <p>DSC配准前平均: {df['dsc_before'].mean():.4f}, 配准后平均: {df['dsc_after'].mean():.4f}, 变化: {df['dsc_after'].mean() - df['dsc_before'].mean():.4f}</p>
+    <h2>Statistical Summary</h2>
+    <p>Total frames: {len(df)}</p>
+    <p>Mean NCC before registration: {df['ncc_before'].mean():.4f}, mean NCC after registration: {df['ncc_after'].mean():.4f}, change: {df['ncc_after'].mean() - df['ncc_before'].mean():.4f}</p>
+    <p>Mean DSC before registration: {df['dsc_before'].mean():.4f}, mean DSC after registration: {df['dsc_after'].mean():.4f}, change: {df['dsc_after'].mean() - df['dsc_before'].mean():.4f}</p>
     
-    <h2>详细数据</h2>
+    <h2>Detailed Data</h2>
     <table>
         <tr>
-            <th>帧号</th>
-            <th>NCC_前</th>
-            <th>NCC_后</th>
-            <th>ΔNCC</th>
-            <th>DSC_前</th>
-            <th>DSC_后</th>
-            <th>ΔDSC</th>
+            <th>Frame</th>
+            <th>NCC Before</th>
+            <th>NCC After</th>
+            <th>Delta NCC</th>
+            <th>DSC Before</th>
+            <th>DSC After</th>
+            <th>Delta DSC</th>
         </tr>
 """
 
-# 添加数据行
+# Add data rows
 for idx, row in df.iterrows():
     delta_ncc = row['ncc_after'] - row['ncc_before']
     delta_dsc = row['dsc_after'] - row['dsc_before']
@@ -486,24 +488,23 @@ html_content += """
 </html>
 """
 
-# 保存HTML
+# Save HTML
 with open('results/results.html', 'w', encoding='utf-8') as f:
     f.write(html_content)
 
-print("结果展示网页已生成: results/results.html")
+print("Results display webpage generated: results/results.html")
 ```
 
 ---
 
-## 总结
+## Summary
 
-本补充文档提供了：
+This supplementary document provides:
 
-1. **生成图表的完整代码**：可直接运行生成论文中需要的图表
-2. **进一步分析的建议**：如何深入挖掘数据、验证假设
-3. **错误案例分析方法**：如何选取代表性案例进行展示
-4. **补充统计计算**：相关系数、t检验、置信区间等
-5. **网页展示工具**：快速创建交互式结果展示
+1. **Complete code for figure generation**: directly runnable scripts for producing thesis figures.
+2. **Suggestions for further analysis**: methods for exploring data more deeply and validating hypotheses.
+3. **Failure-case analysis methods**: guidance on selecting and presenting representative cases.
+4. **Supplementary statistical calculations**: correlation coefficients, t-tests, confidence intervals, and related metrics.
+5. **Webpage display tool**: a quick way to create an interactive results display.
 
-将这些分析与主指南中的框架结合，可以撰写出结构完整、分析深入的论文"结果与分析"章节。
-
+Combined with the framework in the main guide, these materials can support a complete and in-depth "Results and Analysis" chapter for the thesis.

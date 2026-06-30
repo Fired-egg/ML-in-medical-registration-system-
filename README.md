@@ -1,20 +1,20 @@
-# 激光散斑眼底视频帧图像配准系统
+# Laser Speckle Fundus Video Frame Registration System
 
-本项目面向激光散斑眼底视频帧序列，实现了从图像质量筛选、基准帧选择、深度特征配准、效果评价到可视化导出的完整流程。配准核心基于 SuperRetina 关键点检测与描述子模型，项目在此基础上增加了批量视频帧处理、PyQt5 图形界面、NCC/DSC 评价、棋盘格可视化和配准前后对比视频生成等功能。
+This project implements a complete workflow for laser speckle fundus video frame sequences, covering image-quality filtering, reference-frame selection, deep-feature registration, quantitative evaluation, and visualization export. The registration core is based on the SuperRetina keypoint detector and descriptor model. On top of that model, this project adds batch video-frame processing, a PyQt5 graphical interface, NCC/DSC evaluation, chessboard visualization, and before/after registration video generation.
 
-## 主要功能
+## Main Features
 
-- 图像质量过滤：剔除全黑、过曝、模糊等无效帧。
-- 基准帧选择：根据中心与周边区域的熵、梯度信息自动选择质量较高的参考帧。
-- 图像配准：使用 SuperRetina 提取眼底图像关键点与描述子，并通过特征匹配估计单应性矩阵。
-- 批量处理：将有效帧统一配准到基准帧，并保存匹配信息。
-- 效果评价：输出配准前后的 NCC、DSC 指标 CSV 和统计文本。
-- 可视化：生成棋盘格对比图、血管掩码结果和配准前后对比视频。
-- GUI 操作：提供一键配准、评价、视频生成和导出目录打开功能。
+- Image-quality filtering: removes invalid frames such as fully black, overexposed, and blurred frames.
+- Reference-frame selection: automatically selects a high-quality reference frame using entropy and gradient information from central and peripheral regions.
+- Image registration: uses SuperRetina to extract fundus image keypoints and descriptors, then estimates the homography matrix through feature matching.
+- Batch processing: registers all valid frames to the reference frame and saves matching information.
+- Evaluation: exports pre-registration and post-registration NCC/DSC metrics as CSV files and statistical text reports.
+- Visualization: generates chessboard comparison images, vessel-mask results, and before/after registration videos.
+- GUI operation: provides one-click registration, evaluation, video generation, and output-folder opening.
 
-## 环境配置
+## Environment Setup
 
-建议使用 Python 3.8，并优先在 Conda 环境中运行。
+Python 3.8 is recommended, preferably inside a Conda environment.
 
 ```bash
 conda create -n retina_registration python=3.8 -y
@@ -23,104 +23,104 @@ pip install -r requirements.txt
 pip install PyQt5 scikit-image
 ```
 
-说明：
+Notes:
 
-- `PyQt5` 用于运行图形界面 `app.py`。
-- `scikit-image` 用于可选的 SSIM 指标；未安装时程序会自动跳过。
-- 预训练模型默认路径为 `save/SuperRetina.pth`，对应配置位于 `config/test.yaml`。
+- `PyQt5` is used to run the graphical interface in `app.py`.
+- `scikit-image` is used for the optional SSIM metric; the program skips it automatically when it is not installed.
+- The default pretrained model path is `save/SuperRetina.pth`, and the corresponding configuration is in `config/test.yaml`.
 
-## 快速运行
+## Quick Start
 
-### 图形界面方式
+### Graphical Interface
 
 ```bash
 python app.py
 ```
 
-GUI 操作流程：
+GUI workflow:
 
-1. 选择输入图片文件夹。
-2. 选择导出目录，默认可使用项目内 `results/`。
-3. 点击“一键生成基准配准”，程序会完成质量过滤、基准帧选择和批量配准。
-4. 点击“评价配准效果”，生成评价 CSV、统计文件和棋盘格可视化。
-5. 点击“生成配准视频”，导出配准前后对比视频。
+1. Select the input image folder.
+2. Select the export directory. The project-level `results/` directory can be used by default.
+3. Click "Generate Reference Registration" to run quality filtering, reference-frame selection, and batch registration.
+4. Click "Evaluate Registration" to generate the evaluation CSV, statistics file, and chessboard visualizations.
+5. Click "Generate Registration Video" to export the before/after comparison video.
 
-### 命令行方式
+### Command Line
 
-命令行建议分步骤运行：
+The command-line workflow is best run step by step:
 
 ```bash
-# 1. 预处理、质量过滤与基准帧选择
+# 1. Preprocess images, filter low-quality frames, and select the reference frame
 python pre/01_get_base.py
 
-# 2. 将有效帧配准到基准帧
+# 2. Register valid frames to the reference frame
 python register_from_base.py
 
-# 3. 生成 predictor 预处理后的图像
+# 3. Generate predictor-preprocessed images
 python preprocess_filtered.py
 
-# 4. 评价配准效果
+# 4. Evaluate registration quality
 python evaluate_registration.py
 
-# 5. 生成配准前后对比视频
+# 5. Generate the before/after registration comparison video
 python video_demo.py --results results --output results/registration_demo.mp4 --fps 10
 ```
 
-也可以在已经存在 `results/filtered/` 等中间结果后，运行后处理组合脚本：
+If intermediate results such as `results/filtered/` already exist, the post-processing wrapper script can also be run:
 
 ```bash
 python run_all.py
 ```
 
-注意：
+Notes:
 
-- `pre/01_get_base.py` 中的默认输入路径是本机绝对路径，换机器运行前需要修改 `folder` 变量，或者优先使用 GUI 选择输入目录。
-- `run_all.py` 主要执行 `preprocess_filtered.py` 和 `visualize_and_evaluate.py`，不是从原始图片开始的一键完整配准入口。
+- The default input path in `pre/01_get_base.py` is a local absolute path. Before running on another machine, update the `folder` variable or use the GUI to select the input directory.
+- `run_all.py` mainly runs `preprocess_filtered.py` and `visualize_and_evaluate.py`. It is not a complete one-click registration entry point starting from raw images.
 
-## 输出结果
+## Output Results
 
-默认输出目录为 `results/`，主要文件如下：
+The default output directory is `results/`. The main files are:
 
 ```text
 results/
-├── filtered/                         # 质量过滤后的有效帧
-├── frame_info.json                   # 基准帧、有效帧列表和质量评分
-├── registered_filtered/              # 配准后的图像
-├── match_info_filtered/match_info.json # 每帧匹配点、内点率和单应性矩阵
-├── filtered_predictor_preprocessed/  # predictor 预处理后的配准前图像
-├── registration_eval.csv             # 每帧评价指标
-├── registration_stats.txt            # 指标统计结果
-├── chessboard/                       # 配准前后棋盘格对比图
-└── registration_demo.mp4             # 配准前后对比视频
+├── filtered/                         # Valid frames after quality filtering
+├── frame_info.json                   # Reference frame, valid-frame list, and quality scores
+├── registered_filtered/              # Registered images
+├── match_info_filtered/match_info.json # Per-frame matching points, inlier rate, and homography matrix
+├── filtered_predictor_preprocessed/  # Pre-registration images after predictor preprocessing
+├── registration_eval.csv             # Per-frame evaluation metrics
+├── registration_stats.txt            # Metric statistics
+├── chessboard/                       # Chessboard comparison images before and after registration
+└── registration_demo.mp4             # Before/after registration comparison video
 ```
 
-## 项目结构
+## Project Structure
 
 ```text
 .
-├── app.py                    # PyQt5 图形界面入口
-├── gui_worker.py             # GUI 后台线程任务
-├── predictor.py              # SuperRetina 推理、特征匹配和单应性估计
-├── register_from_base.py     # 批量配准流程
-├── evaluate_registration.py  # 配准效果评价和棋盘格生成
-├── video_demo.py             # 配准前后对比视频生成
-├── vessel_mask.py            # 血管掩码提取
-├── metrics_config.py         # 不同实验模式下的评价指标配置
+├── app.py                    # PyQt5 GUI entry point
+├── gui_worker.py             # Background worker tasks for the GUI
+├── predictor.py              # SuperRetina inference, feature matching, and homography estimation
+├── register_from_base.py     # Batch registration workflow
+├── evaluate_registration.py  # Registration evaluation and chessboard generation
+├── video_demo.py             # Before/after registration comparison video generation
+├── vessel_mask.py            # Vessel-mask extraction
+├── metrics_config.py         # Evaluation metric configuration for different experiment modes
 ├── pre/
-│   ├── get_base.py           # 图像质量过滤、基准帧选择、光斑处理
-│   └── 01_get_base.py        # 预处理命令行入口
-├── model/                    # SuperRetina 网络结构
-├── common/                   # 通用预处理、NMS、评价工具
-├── loss/                     # 训练损失函数
-├── config/                   # 训练与测试配置
-├── notebooks/                # 原始 SuperRetina 示例 Notebook
-├── save/                     # 模型权重
-└── data/                     # 示例数据与数据说明
+│   ├── get_base.py           # Image-quality filtering, reference-frame selection, and highlight handling
+│   └── 01_get_base.py        # Preprocessing command-line entry point
+├── model/                    # SuperRetina network architecture
+├── common/                   # Shared preprocessing, NMS, and evaluation utilities
+├── loss/                     # Training loss functions
+├── config/                   # Training and testing configurations
+├── notebooks/                # Original SuperRetina example notebooks
+├── save/                     # Model weights
+└── data/                     # Example data and data documentation
 ```
 
-## 配置说明
+## Configuration
 
-推理配置位于 `config/test.yaml`：
+The inference configuration is located at `config/test.yaml`:
 
 ```yaml
 PREDICT:
@@ -133,17 +133,17 @@ PREDICT:
   knn_thresh: 0.9
 ```
 
-常用可调参数：
+Commonly adjusted parameters:
 
-- `device`：优先使用 GPU；没有 CUDA 时程序会回退到 CPU。
-- `model_save_path`：预训练模型权重路径。
-- `nms_thresh`：关键点响应阈值。
-- `knn_thresh`：KNN 特征匹配阈值。
-- `model_image_width` / `model_image_height`：模型输入图像尺寸。
+- `device`: uses the GPU when available; falls back to CPU when CUDA is unavailable.
+- `model_save_path`: path to the pretrained model weights.
+- `nms_thresh`: keypoint response threshold.
+- `knn_thresh`: KNN feature-matching threshold.
+- `model_image_width` / `model_image_height`: input image size for the model.
 
-## 评价模式说明
+## Evaluation Modes
 
-`evaluate_registration.py` 默认使用 `metrics_config.py` 中的 `best` 模式生成 NCC 和 DSC 指标数据，用于不同实验设置下的结果展示。可通过命令行切换模式：
+By default, `evaluate_registration.py` uses the `best` mode in `metrics_config.py` to generate NCC and DSC metrics for presenting results under different experiment settings. The mode can be changed from the command line:
 
 ```bash
 python evaluate_registration.py --list
@@ -153,4 +153,4 @@ python evaluate_registration.py --mode worst
 python evaluate_registration.py --mode baseline
 ```
 
-如果需要改为完全基于图像内容实时计算指标，可在 `evaluate_registration.py` 中替换当前 `generate_metrics(...)` 相关逻辑，项目内已保留 `ncc(...)`、`dsc(...)`、`mutual_info(...)` 等计算函数。
+To compute metrics fully from image content at runtime, replace the current `generate_metrics(...)` logic in `evaluate_registration.py`. The project keeps calculation functions such as `ncc(...)`, `dsc(...)`, and `mutual_info(...)` for this purpose.
